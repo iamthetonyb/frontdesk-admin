@@ -1,8 +1,7 @@
 {
   "name": "kingcro-voice-service",
   "version": "1.0.0",
-  "type": "module",
-  "description": "Backend microservice for KingCRO dynamic agentic builder (check\u2011in, resident lookup) ready for Railway.",
+  "description": "Backend microservice for KingCRO dynamic agentic builder (check-in, resident lookup) ready for Railway.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,8 +9,8 @@
   },
   "dependencies": {
     "body-parser": "^1.20.2",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "pg": "^8.11.3",
-    "dotenv": "^16.4.5"
+    "pg": "^8.11.3"
   }
 }
