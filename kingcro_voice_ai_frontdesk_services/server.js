@@ -6,8 +6,14 @@
  *  --------------------------------
  *  ENV:
  *      PORT        (optional – Railway injects one)
- *      AI_BEARER   Bearer token you expect from your AI agent, e.g. bEhKKjApoVKKAMP3pftF
+ *      AI_BEARER   Bearer token you expect from your AI agent
  */
+// auth check
+const bearer = req.get('authorization') || '';
+const expected = `Bearer ${process.env.BEARER_TOKEN}`;
+if (bearer !== expected) {
+  return res.status(403).json({ error: 'Forbidden' });
+}
 
 import express from 'express';
 import bodyParser from 'body-parser';
