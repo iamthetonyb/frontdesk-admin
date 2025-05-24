@@ -1,83 +1,82 @@
-/* KingCRO Voice Service – server.js
-   ---------------------------------
-   Routes:
-     GET  /health      → “OK”
-     POST /ai/checkin  → validates & logs visitor JSON
-   ENV:
-     PORT        (Railway injects one automatically)
-     AI_BEARER   Bearer token expected from the Tixae tool
-*/
+// ───────────────────────────────────────────────────────────
+// KingCRO Voice Service – QUICK-DEMO
+// • Stores visit → Postgres
+// • Immediately POSTs json → WP store-visit route
+// • Logs everything
+// ───────────────────────────────────────────────────────────
+import express     from 'express';
+import bodyParser  from 'body-parser';
+import pg          from 'pg';
+import fetch       from 'node-fetch';
+import 'dotenv/config';
 
-require('dotenv').config();
-const express    = require('express');
-const bodyParser = require('body-parser');
-
-const app         = express();
 const PORT        = process.env.PORT || 3000;
-const BEARER_KEY  = process.env.AI_BEARER || 'bEhKKjApoVKKAMP3pftF';
+const AI_BEARER   = process.env.AI_BEARER;
+const WP_URL      = process.env.WP_WEBHOOK_URL;
+const WP_TOKEN    = process.env.WP_WEBHOOK_TOKEN;
 
+// ─── Postgres ───────────────────────────────────────────────
+const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+await pgPool.query(`
+  CREATE TABLE IF NOT EXISTS visits_demo (
+    id SERIAL PRIMARY KEY,
+    ts TIMESTAMPTZ     DEFAULT now(),
+    unit               TEXT,
+    guest_names        TEXT,
+    phone              TEXT,
+    guest_count        INT,
+    raw_payload        JSONB
+  );
+`);
+
+// ─── Express ────────────────────────────────────────────────
+const app = express();
 app.use(bodyParser.json({ limit: '1mb' }));
 
-/* ---------- health ---------- */
-app.get('/health', (_req, res) => res.send('OK'));
+app.get('/health', (_,res) => res.send('OK'));
 
-/* optional root so Railway’s HTTP check doesn’t 404 */
-app.get('/', (_req, res) => res.send('KingCRO Voice Service'));
-
-/* ---------- visitor check-in ---------- */
-app.post('/ai/checkin', (req, res) => {
- /* --- auth check ----------------------------------------- */
-let authorised = false;
-const authHeader = (req.headers.authorization || '').trim();
-const bearerKey = process.env.AI_BEARER || 'bEhKKjApoVKKAMP3pftF';
-
-/* 1️⃣  If AI ever supports custom headers, this still works: */
-if (authHeader.startsWith('Bearer ') && authHeader.split(/\s+/)[1] === bearerKey) {
-  authorised = true;
-}
-
-/* 2️⃣  Fallback for AI’s current behaviour: use agent_id in body */
-if (!authorised && req.body?.agent_id === bearerKey) {
-  authorised = true;
-}
-
-if (!authorised) {
-  return res
-    .status(403)
-    .json({ statusCode: 403, code: 'forbidden', message: 'Invalid token / agent_id' });
-}
-
-  /* --- validate body ------------------------------------------------ */
-  const data = req.body?.tool_payload || req.body || {};
-  const required = [
-    'unit', 'guest_names', 'phone', 'guest_count',
-    'check_in', 'agreement_accepted'
-  ];
-
-  for (const f of required) {
-    if (!data[f]) {
-      return res
-        .status(400)
-        .json({ statusCode: 400, code: 'bad_request', message: `Missing required field: ${f}` });
-    }
+// MAIN demo endpoint
+app.post('/ai/checkin', async (req, res) => {
+  /* auth */
+  if (req.headers.authorization !== `Bearer ${AI_BEARER}`) {
+    return res.status(403).json({ statusCode:403, code:'forbidden', message:'Invalid token' });
   }
 
-  if (data.has_vehicle) {
-    const veh = ['parking_stall', 'license_plate', 'car_make', 'car_model', 'car_color'];
-    for (const f of veh) {
-      if (!data[f]) {
-        return res
-          .status(400)
-          .json({ statusCode: 400, code: 'bad_request', message: `Missing vehicle field: ${f}` });
-      }
-    }
+  const p = req.body?.tool_payload || req.body || {};
+  const required = ['unit','guest_names','phone','guest_count'];
+  for (const f of required) if (!p[f]) {
+    return res.status(400).json({ statusCode:400, code:'bad_request', message:`Missing field: ${f}`});
   }
 
-  /* --- store / queue / forward ------------------------------------- */
-  console.log('✅ VISITOR CHECK-IN\n', JSON.stringify(data, null, 2));
+  /* save → Postgres */
+  const { rows:[{ id }] } = await pgPool.query(
+    'INSERT INTO visits_demo (unit,guest_names,phone,guest_count,raw_payload) VALUES ($1,$2,$3,$4,$5) RETURNING id',
+    [p.unit, p.guest_names, p.phone, +p.guest_count, p]
+  );
 
-  return res.json({ stored: true });
+  /* forward → WordPress (fire-and-forget) */
+  if (WP_URL) {
+    fetch(WP_URL, {
+      method : 'POST',
+      headers: {
+        'content-type' : 'application/json',
+        'authorization': WP_TOKEN
+      },
+      body: JSON.stringify(p)
+    })
+    .then(r => r.text())
+    .then(txt => console.log('→ WP response', txt))
+    .catch(err => console.warn('WP forward failed', err.message));
+  }
+
+  console.log('✅ demo check-in stored id', id);
+  return res.json({ stored:true, id });
 });
 
-/* ---------- start ---------- */
-app.listen(PORT, () => console.log(`🚀  KingCRO Voice Service listening on :${PORT}`));
+// list for quick viewing
+app.get('/api/demo', async (_,res)=>{
+  const { rows } = await pgPool.query('SELECT * FROM visits_demo ORDER BY ts DESC LIMIT 100');
+  res.json(rows);
+});
+
+app.listen(PORT, () => console.log(`🚀 Quick-demo service on :${PORT}`));
