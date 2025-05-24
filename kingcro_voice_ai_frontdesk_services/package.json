@@ -1,7 +1,8 @@
 {
   "name": "kingcro-voice-service",
   "version": "1.0.0",
-  "description": "Minimal visitor-check-in API for the Tixae agent, packaged for Railway.",
+  "description": "AI visitor-check-in API for the Agentic agent, packaged for Railway.",
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
