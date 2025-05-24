@@ -38,9 +38,17 @@ app.get('/health', (_,res) => res.send('OK'));
 // MAIN demo endpoint
 app.post('/ai/checkin', async (req, res) => {
   /* auth */
-  if (req.headers.authorization !== `Bearer ${AI_BEARER}`) {
-    return res.status(403).json({ statusCode:403, code:'forbidden', message:'Invalid token' });
-  }
+  const authHeader = req.headers.authorization;
+const agentId = req.body.agent_id || (req.body.tool_metadata && req.body.tool_metadata.agent_id);
+
+if (
+  (authHeader && authHeader === `Bearer ${BEARER_KEY}`) ||
+  (agentId && agentId === BEARER_KEY)
+) {
+  // Allow request
+} else {
+  return res.status(403).json({ statusCode: 403, code: 'forbidden', message: 'Invalid token' });
+}
 
   const p = req.body?.tool_payload || req.body || {};
   const required = ['unit','guest_names','phone','guest_count'];
