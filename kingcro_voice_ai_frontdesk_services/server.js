@@ -26,15 +26,26 @@ app.get('/', (_req, res) => res.send('KingCRO Voice Service'));
 
 /* ---------- visitor check-in ---------- */
 app.post('/ai/checkin', (req, res) => {
-  /* --- auth --------------------------------------------------------- */
-  const authHeader = (req.headers.authorization || '').trim();
-  const [scheme, token] = authHeader.split(/\s+/);
+ /* --- auth check ----------------------------------------- */
+let authorised = false;
+const authHeader = (req.headers.authorization || '').trim();
+const bearerKey = process.env.AI_BEARER || 'bEhKKjApoVKKAMP3pftF';
 
-  if (scheme?.toLowerCase() !== 'bearer' || token !== BEARER_KEY) {
-    return res
-      .status(403)
-      .json({ statusCode: 403, code: 'forbidden', message: 'Invalid token' });
-  }
+/* 1️⃣  If AI ever supports custom headers, this still works: */
+if (authHeader.startsWith('Bearer ') && authHeader.split(/\s+/)[1] === bearerKey) {
+  authorised = true;
+}
+
+/* 2️⃣  Fallback for AI’s current behaviour: use agent_id in body */
+if (!authorised && req.body?.agent_id === bearerKey) {
+  authorised = true;
+}
+
+if (!authorised) {
+  return res
+    .status(403)
+    .json({ statusCode: 403, code: 'forbidden', message: 'Invalid token / agent_id' });
+}
 
   /* --- validate body ------------------------------------------------ */
   const data = req.body || {};
