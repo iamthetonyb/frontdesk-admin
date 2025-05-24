@@ -1,12 +1,12 @@
 {
   "name": "kingcro-voice-service",
   "version": "1.0.0",
-  "description": "AI visitor-check-in API for the Agentic agent, packaged for Railway.",
+  "description": "Visitor-check-in micro-API (Agentic AI ↔ Railway)",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "npx nodemon server.js"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
