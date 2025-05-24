@@ -2,7 +2,6 @@
   "name": "kingcro-voice-service",
   "version": "1.0.0",
   "description": "Visitor-check-in micro-API (Agentic AI ↔ Railway)",
-  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
