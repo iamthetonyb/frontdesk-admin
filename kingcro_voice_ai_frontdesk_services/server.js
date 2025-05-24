@@ -3,10 +3,24 @@
 
 const express = require('express');
 const bodyParser = require('body-parser');
-const { Pool } = require('pg');
 
+const app = express();
 const PORT = process.env.PORT || 3000;
-const BEARER_KEY = process.env.AI_BEARER || 'bEhKKjApoVKKAMP3pftF';
+const AGENT_ID = process.env.AGENT_ID || 'bEhKKjApoVKKAMP3pftF';
+
+app.use(bodyParser.json({ limit: '1mb' }));
+
+app.post('/ai/checkin', (req, res) => {
+  // Check agent_id from body
+  const bodyAgentId = req.body && req.body.agent_id;
+
+  if (bodyAgentId !== AGENT_ID) {
+    return res.status(403).json({
+      statusCode: 403,
+      code: 'forbidden',
+      message: `Invalid agent_id (got "${bodyAgentId || ''}")`
+    });
+  }
 
 // Railway auto-injects DB vars. Fill in manually if running local.
 const pool = new Pool({
@@ -96,4 +110,8 @@ app.post('/ai/checkin', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`🚀 KingCRO Voice Service running on :${PORT}`));
+console.log('✅ Valid check-in:', req.body);
+  res.json({ ok: true, stored: true });
+});
+
+app.listen(PORT, () => console.log(`Running on :${PORT}`));
