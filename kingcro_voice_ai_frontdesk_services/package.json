@@ -1,6 +1,7 @@
 {
   "name": "kingcro-voice-service",
   "version": "1.0.0",
+  "type": "module",
   "description": "Backend microservice for KingCRO dynamic agentic builder (check\u2011in, resident lookup) ready for Railway.",
   "main": "server.js",
   "scripts": {
