@@ -1,8 +1,8 @@
 // KingCRO Voice Service – server.js
 // Agentic Express API for Railway and AI check-ins
 
-const express = require('express');
-const bodyParser = require('body-parser');
+import express from 'express';
+import bodyParser from 'body-parser';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
