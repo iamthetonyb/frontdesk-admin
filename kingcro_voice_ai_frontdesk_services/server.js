@@ -48,7 +48,7 @@ if (!authorised) {
 }
 
   /* --- validate body ------------------------------------------------ */
-  const data = req.body || {};
+  const data = req.body?.tool_payload || req.body || {};
   const required = [
     'unit', 'guest_names', 'phone', 'guest_count',
     'check_in', 'agreement_accepted'
