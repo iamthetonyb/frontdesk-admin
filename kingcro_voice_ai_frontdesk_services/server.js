@@ -20,6 +20,7 @@ app.use(bodyParser.json({ limit: '1mb' }));
 
 /* ---------- health ---------- */
 app.get('/health', (_, res) => res.send('OK'));
+console.log('AUTH HEADER RECEIVED →', req.headers.authorization);
 
 /* ---------- visitor check-in ---------- */
 app.post('/ai/checkin', (req, res) => {
