@@ -1,6 +1,6 @@
 # KingCRO Voice Service (Railway ready)
 
-Express/Node backend that stores visitor check‑ins from your AI concierge (Tixae, Vapi, etc.)  
+Express/Node backend that stores visitor check‑ins from your AI concierge (VG, Vapi, etc.)  
 and exposes a couple of helper endpoints.
 
 ## Endpoints
@@ -33,9 +33,9 @@ railway run psql < migrations/001_init.sql
 
 Or open the **Database → Query** UI and paste the SQL from _migrations/001_init.sql_.
 
-## Using with Tixae tool
+## Using with AI agent tool
 
-Configure your Tixae AI tool:
+Configure your Agentic AI tool:
 
 ```
 Tool URL: https://your-service--{DEPLOYMENT_ID}.up.railway.app/checkin
