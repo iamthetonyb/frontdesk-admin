@@ -1,52 +1,74 @@
 // KingCRO Voice Service – server.js
 // Agentic Express API for Railway and AI check-ins
 
-import express from 'express';
-import bodyParser from 'body-parser';
-import pkg from 'pg';
-const { Pool } = pkg;
+const express = require('express');
+const bodyParser = require('body-parser');
+const { Pool } = require('pg');
 
-// Fill in your Railway Postgres details or use env vars
+const PORT = process.env.PORT || 3000;
+const BEARER_KEY = process.env.AI_BEARER || 'bEhKKjApoVKKAMP3pftF';
+
+// Railway auto-injects DB vars. Fill in manually if running local.
 const pool = new Pool({
   user: process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD || 'YOUR_PW',
-  host: process.env.PGHOST || 'YOUR_HOST',
+  password: process.env.PGPASSWORD || 'YOUR_DB_PASSWORD',
+  host: process.env.PGHOST || 'YOUR_DB_HOST',
   port: process.env.PGPORT || 5432,
   database: process.env.PGDATABASE || 'railway',
   ssl: { rejectUnauthorized: false },
 });
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const BEARER_KEY = process.env.AI_BEARER || 'bEhKKjApoVKKAMP3pftF';
-
 app.use(bodyParser.json({ limit: '1mb' }));
 
 app.get('/health', (_, res) => res.send('OK'));
 
 app.post('/ai/checkin', async (req, res) => {
-  if (req.headers.authorization !== `Bearer ${BEARER_KEY}`) {
-    return res.status(403).json({ statusCode: 403, code: 'forbidden', message: 'Invalid token' });
+  // LOG the incoming header!
+  console.log('Auth header received:', req.headers.authorization);
+
+  // Bearer token check (case insensitive, trims whitespace)
+  let headerToken = req.headers.authorization || '';
+  headerToken = headerToken.trim();
+
+  const expected = `Bearer ${BEARER_KEY}`;
+  if (headerToken !== expected) {
+    return res.status(403).json({
+      statusCode: 403,
+      code: 'forbidden',
+      message: `Invalid token (got "${headerToken}")`,
+    });
   }
+
   const data = req.body ?? {};
   const required = [
     'unit', 'guest_names', 'phone', 'guest_count',
-    'check_in', 'agreement_accepted'
+    'check_in', 'agreement_accepted',
   ];
   for (const field of required) {
     if (!data[field]) {
-      return res.status(400).json({ statusCode: 400, code: 'bad_request', message: `Missing required field: ${field}` });
+      return res.status(400).json({
+        statusCode: 400,
+        code: 'bad_request',
+        message: `Missing required field: ${field}`,
+      });
     }
   }
-  // Optional vehicle validation
   if (data.has_vehicle) {
-    const vehicleFields = ['parking_stall', 'license_plate', 'car_make', 'car_model', 'car_color'];
+    const vehicleFields = [
+      'parking_stall', 'license_plate', 'car_make', 'car_model', 'car_color'
+    ];
     for (const field of vehicleFields) {
       if (!data[field]) {
-        return res.status(400).json({ statusCode: 400, code: 'bad_request', message: `Missing vehicle field: ${field}` });
+        return res.status(400).json({
+          statusCode: 400,
+          code: 'bad_request',
+          message: `Missing vehicle field: ${field}`,
+        });
       }
     }
   }
+
   // Insert into Postgres
   try {
     await pool.query(
@@ -66,7 +88,11 @@ app.post('/ai/checkin', async (req, res) => {
     return res.json({ stored: true });
   } catch (err) {
     console.error('DB insert error:', err);
-    return res.status(500).json({ statusCode: 500, code: 'db_error', message: err.message });
+    return res.status(500).json({
+      statusCode: 500,
+      code: 'db_error',
+      message: err.message,
+    });
   }
 });
 
